@@ -1,0 +1,28 @@
+.header-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100%;
+  padding: 10px 20px;
+  background-color: #f9f9f9;
+  display: flex;
+  justify-content: flex-end;
+  z-index: 1000;
+}
+
+.header-link-button {
+  background: none;
+  border: none;
+  color: #007bff;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 5px 10px;
+  transition: color 0.2s;
+}
+
+.header-link-button:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}

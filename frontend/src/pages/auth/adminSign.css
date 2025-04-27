@@ -1,0 +1,43 @@
+.adminsign-container {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.adminsign-title {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.adminsign-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.adminsign-form input {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  outline: none;
+}
+
+.adminsign-form input:focus {
+  border-color: #007bff;
+}
+
+.error {
+  color: #d32f2f;
+  margin-top: 10px;
+}
+
+.success {
+  color: #388e3c;
+  margin-top: 10px;
+}
