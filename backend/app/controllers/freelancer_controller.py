@@ -1,6 +1,8 @@
 from flask import jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 from app.models.freelancer import Freelancer
+from app.models.project import Project
+from app.models.review import Review
 from app import db
 from werkzeug.security import check_password_hash
 
@@ -109,7 +111,7 @@ class FreelancerController:
         except Exception as e:
             db.session.rollback()
             return jsonify({"error": str(e)}), 500
-        
+
     @staticmethod
     @jwt_required()
     def get_me():
@@ -124,3 +126,48 @@ class FreelancerController:
             return jsonify({"error": "Freelancer não encontrado."}), 404
 
         return jsonify(freelancer.to_dict()), 200
+
+    @staticmethod
+    @jwt_required()
+    def delete_account():
+        """Deleta a conta do freelancer autenticado."""
+        freelancer_id = get_jwt_identity()
+        claims = get_jwt()
+        if claims['role'] != 'freelancer':
+            return jsonify({"error": "Acesso não autorizado."}), 403
+
+        freelancer = Freelancer.query.get(int(freelancer_id))
+        if not freelancer:
+            return jsonify({"error": "Freelancer não encontrado."}), 404
+
+        try:
+            db.session.delete(freelancer)
+            db.session.commit()
+            return jsonify({"message": "Conta deletada com sucesso."}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
+    @staticmethod
+    @jwt_required()
+    def get_completed_projects():
+        """Lista os projetos finalizados do freelancer autenticado."""
+        freelancer_id = get_jwt_identity()
+        claims = get_jwt()
+        if claims['role'] != 'freelancer':
+            return jsonify({"error": "Acesso não autorizado."}), 403
+
+        freelancer = Freelancer.query.get(int(freelancer_id))
+        if not freelancer:
+            return jsonify({"error": "Freelancer não encontrado."}), 404
+
+        projects = Project.query.filter_by(freelancer_id=int(freelancer_id), status='completed').all()
+        result = []
+        for project in projects:
+            project_data = project.to_dict()
+            # Adiciona a avaliação associada ao projeto, se existir
+            review = Review.query.filter_by(project_id=project.id, freelancer_id=int(freelancer_id)).first()
+            project_data['review'] = review.to_dict() if review else None
+            result.append(project_data)
+
+        return jsonify(result), 200

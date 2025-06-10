@@ -28,3 +28,8 @@ def update(project_id):
 def delete(project_id):
     """Rota para deletar um projeto existente."""
     return ProjectController.delete(project_id)
+
+@project_bp.route('/<int:project_id>/complete', methods=['PATCH'])
+def complete(project_id):
+    """Rota para marcar um projeto como concluído."""
+    return ProjectController.complete()

@@ -4,16 +4,16 @@ from app.routes.freelancer_routes import freelancer_bp
 from app.routes.project_routes import project_bp
 from app.routes.proposal_routes import proposal_bp
 from app.routes.admin_routes import admin_bp
+from app.routes.message_routes import message_bp
+from app.routes.recommendation_routes import recommendation_bp
 
 def register_routes(app):
     """Registra todos os Blueprints de rotas na aplicação Flask."""
     
     app.register_blueprint(client_bp, url_prefix='/client')
-
     app.register_blueprint(freelancer_bp, url_prefix='/freelancer')
-
     app.register_blueprint(project_bp, url_prefix='/project')
-
     app.register_blueprint(proposal_bp, url_prefix='/proposal')
-
     app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(message_bp, url_prefix='/message')
+    app.register_blueprint(recommendation_bp, url_prefix='/recommendation')

@@ -63,8 +63,4 @@ O frontend foi construído com React, TypeScript, HTML e CSS, usando Vite. A pas
    ```bash
    npm run dev
    ```
-   O frontend estará rodando em `http://localhost:5173`.
-
-## Resumo
-
-O *Match para Freelancers de Programação* facilita a conexão entre clientes e freelancers, com suporte para publicação de projetos, envio de propostas e administração. O backend gerencia lógica e segurança com Flask e JWT, o frontend oferece uma interface responsiva com React, e o SQLite armazena os dados.
+   O frontend estará rodando em `http://localhost:5173`

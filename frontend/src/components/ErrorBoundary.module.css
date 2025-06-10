@@ -1,0 +1,42 @@
+.errorContainer {
+  background-color: #fee2e2;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: 1.25rem;
+  color: #b91c1c;
+  margin-bottom: 0.5rem;
+}
+
+.message {
+  color: #b91c1c;
+  margin-bottom: 1rem;
+}
+
+.errorDetails {
+  background-color: #fef2f2;
+  padding: 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: #7f1d1d;
+  white-space: pre-wrap;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .errorContainer {
+    padding: 1rem;
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+
+  .message {
+    font-size: 0.875rem;
+  }
+}

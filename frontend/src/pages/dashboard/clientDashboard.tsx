@@ -1,303 +1,283 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../../api/axios";
 import Button from "../../components/Button";
-import "./clientDashboard.css";
+import ProfileSection from "../../components/ProfileSection";
+import ProjectForm from "../../components/ProjectForm";
+import ProjectsList from "../../components/ProjectsList";
+import ProposalsList from "../../components/ProposalsList";
+import ReviewForm from "../../components/ReviewForm";
+import RecommendationsList from "../../components/RecommendationsList";
+import Chat from "../../components/Chat";
+import ErrorBoundary from "../../components/ErrorBoundary";
+import { AuthContext } from "../../contexts/AuthContext";
+import styles from "./ClientDashboard.module.css";
+
+interface Profile {
+  id: number;
+  name: string;
+  email: string;
+  company?: string;
+  phone?: string;
+}
+
+interface Project {
+  id: number;
+  title: string;
+  description: string;
+  skills_required: string;
+  budget: number;
+  deadline: string;
+  status: string;
+  freelancer_id?: number;
+  client_id: number;
+}
+
+interface Proposal {
+  id: number;
+  project_id: number;
+  freelancer_id: number;
+  bid_amount: number;
+  estimated_days: number;
+  message?: string;
+  status: string;
+}
 
 export default function ClientDashboard() {
-  const [profile, setProfile] = useState<any>(null);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [proposals, setProposals] = useState<any[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [newProject, setNewProject] = useState({
-    title: "",
-    description: "",
-    skills_required: "",
-    budget: "",
-    deadline: "",
-  });
-  const [editProfile, setEditProfile] = useState({
-    name: "",
-    email: "",
-    company: "",
-    phone: "",
-  });
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
+    null
+  );
   const [showProjectForm, setShowProjectForm] = useState(false);
-  const [showEditProfile, setShowEditProfile] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  // Carregar perfil e projetos ao montar o componente
   useEffect(() => {
+    if (!user || user.role !== "client") {
+      navigate("/sign");
+      return;
+    }
+
     const fetchProfile = async () => {
       try {
         const response = await api.get("/client/profile");
         setProfile(response.data);
-        setEditProfile({
-          name: response.data.name,
-          email: response.data.email,
-          company: response.data.company || "",
-          phone: response.data.phone || "",
-        });
       } catch (err: any) {
-        setError(err.response?.data?.error || "Erro ao carregar perfil.");
+        setError(
+          err.response?.data?.message || "Erro ao carregar perfil do cliente."
+        );
       }
     };
 
     const fetchProjects = async () => {
       try {
         const response = await api.get("/project/all");
-        setProjects(response.data);
+        setProjects(Array.isArray(response.data) ? response.data : []);
       } catch (err: any) {
-        setError(err.response?.data?.error || "Erro ao carregar projetos.");
+        setError(err.response?.data?.message || "Erro ao carregar projetos.");
       }
     };
 
-    fetchProfile();
-    fetchProjects();
-  }, []);
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([fetchProfile(), fetchProjects()]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Carregar propostas quando um projeto for selecionado
+    loadData();
+  }, [user, navigate]);
+
   useEffect(() => {
-    if (selectedProjectId) {
-      const fetchProposals = async () => {
+    const fetchProposals = async () => {
+      if (selectedProjectId) {
         try {
           const response = await api.get(`/proposal/all/${selectedProjectId}`);
-          setProposals(response.data);
+          setProposals(Array.isArray(response.data) ? response.data : []);
         } catch (err: any) {
-          setError(err.response?.data?.error || "Erro ao carregar propostas.");
+          setError(
+            err.response?.data?.message || "Erro ao carregar propostas."
+          );
         }
-      };
-      fetchProposals();
-    }
+      } else {
+        setProposals([]);
+      }
+    };
+
+    fetchProposals();
   }, [selectedProjectId]);
 
-  const handleNewProjectChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setNewProject({ ...newProject, [e.target.name]: e.target.value });
+  const handleCreateProject = (newProject: Project) => {
+    setProjects([...projects, newProject]);
+    setShowProjectForm(false);
+    setSuccess("Projeto criado com sucesso!");
   };
 
-  const handleEditProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditProfile({ ...editProfile, [e.target.name]: e.target.value });
+  const handleUpdateProjectStatus = (
+    projectId: number,
+    updatedProject: Project
+  ) => {
+    setProjects(projects.map((p) => (p.id === projectId ? updatedProject : p)));
+    setSuccess("Projeto atualizado com sucesso!");
   };
 
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
+  const handleProposalAction = async (
+    proposalId: number,
+    action: "accept" | "reject" | "complete"
+  ) => {
     try {
-      const response = await api.post("/project/create", {
-        ...newProject,
-        budget: parseFloat(newProject.budget),
-        deadline: new Date(newProject.deadline).toISOString(),
-      });
-      setProjects([...projects, response.data.project]);
-      setNewProject({ title: "", description: "", skills_required: "", budget: "", deadline: "" });
-      setShowProjectForm(false);
-      setSuccess("Projeto criado com sucesso!");
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Erro ao criar projeto.");
-    }
-  };
-
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    try {
-      const response = await api.put("/client/update", editProfile);
-      setProfile(response.data.client);
-      setShowEditProfile(false);
-      setSuccess("Perfil atualizado com sucesso!");
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Erro ao atualizar perfil.");
-    }
-  };
-
-  const handleProposalAction = async (proposalId: number, status: "accepted" | "rejected") => {
-    setError("");
-    setSuccess("");
-    try {
-      const response = await api.put(`/proposal/${proposalId}`, { status });
-      setProposals(proposals.map((p) => (p.id === proposalId ? response.data.proposal : p)));
-      if (status === "accepted") {
-        setProjects(
-          projects.map((p) =>
-            p.id === selectedProjectId ? { ...p, status: "in_progress" } : p
+      if (action === "accept" || action === "reject") {
+        await api.put(`/proposal/${proposalId}`, {
+          status: action === "accept" ? "accepted" : "rejected",
+        });
+        setProposals(
+          proposals.map((p) =>
+            p.id === proposalId
+              ? { ...p, status: action === "accept" ? "accepted" : "rejected" }
+              : p
           )
         );
+        if (action === "accept") {
+          setProjects(
+            projects.map((p) =>
+              p.id === selectedProjectId ? { ...p, status: "in_progress" } : p
+            )
+          );
+        }
+        setSuccess(
+          `Proposta ${
+            action === "accept" ? "aceita" : "rejeitada"
+          } com sucesso!`
+        );
+      } else if (action === "complete") {
+        await api.patch(`/project/${selectedProjectId}/complete`);
+        setProjects(
+          projects.map((p) =>
+            p.id === selectedProjectId ? { ...p, status: "completed" } : p
+          )
+        );
+        setSuccess("Projeto marcado como concluído com sucesso!");
       }
-      setSuccess(`Proposta ${status === "accepted" ? "aceita" : "rejeitada"} com sucesso!`);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Erro ao atualizar proposta.");
+      setError(err.response?.data?.message || "Erro ao atualizar proposta.");
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    window.location.href = "/sign";
+  const handleDeleteAccount = async () => {
+    if (
+      !window.confirm(
+        "Tem certeza que deseja excluir sua conta? Esta ação é irreversível."
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.delete("/client/account");
+      logout();
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Erro ao excluir conta.");
+    }
   };
 
+  if (loading) {
+    return <p className={styles.loading}>Carregando dashboard...</p>;
+  }
+
   return (
-    <div className="dashboard-container">
-      <header className="dashboard-header">
-        <h1 className="dashboard-title">Dashboard do Cliente</h1>
-        <Button label="Sair" onClick={handleLogout} primary={false} />
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>Dashboard do Cliente</h1>
+        <Button label="Sair" onClick={logout} primary={false} />
       </header>
 
-      {error && <p className="error">{error}</p>}
-      {success && <p className="success">{success}</p>}
+      {error && <p className={styles.errorMessage}>{error}</p>}
+      {success && <p className={styles.successMessage}>{success}</p>}
 
-      {/* Perfil */}
-      <section className="profile-section">
-        <h2>Meu Perfil</h2>
-        {profile && !showEditProfile ? (
-          <div className="profile-card">
-            <p><strong>Nome:</strong> {profile.name}</p>
-            <p><strong>Email:</strong> {profile.email}</p>
-            {profile.company && <p><strong>Empresa:</strong> {profile.company}</p>}
-            {profile.phone && <p><strong>Telefone:</strong> {profile.phone}</p>}
-            <Button label="Editar Perfil" onClick={() => setShowEditProfile(true)} />
-          </div>
-        ) : (
-          <form className="form" onSubmit={handleUpdateProfile}>
-            <input
-              type="text"
-              name="name"
-              value={editProfile.name}
-              onChange={handleEditProfileChange}
-              placeholder="Nome"
-              required
-            />
-            <input
-              type="email"
-              name="email"
-              value={editProfile.email}
-              onChange={handleEditProfileChange}
-              placeholder="Email"
-              required
-            />
-            <input
-              type="text"
-              name="company"
-              value={editProfile.company}
-              onChange={handleEditProfileChange}
-              placeholder="Empresa (opcional)"
-            />
-            <input
-              type="text"
-              name="phone"
-              value={editProfile.phone}
-              onChange={handleEditProfileChange}
-              placeholder="Telefone (opcional)"
-            />
-            <div className="form-actions">
-              <Button label="Salvar" type="submit" />
-              <Button label="Cancelar" onClick={() => setShowEditProfile(false)} primary={false} />
-            </div>
-          </form>
-        )}
-      </section>
-
-      {/* Projetos */}
-      <section className="projects-section">
-        <h2>Meus Projetos</h2>
-        <Button
-          label={showProjectForm ? "Cancelar" : "Criar Novo Projeto"}
-          onClick={() => setShowProjectForm(!showProjectForm)}
+      <ErrorBoundary componentName="ProfileSection" setError={setError}>
+        <ProfileSection
+          profile={profile}
+          setProfile={setProfile}
+          setError={setError}
+          setSuccess={setSuccess}
+          onDeleteAccount={handleDeleteAccount}
+          role="client"
         />
-        {showProjectForm && (
-          <form className="form" onSubmit={handleCreateProject}>
-            <input
-              type="text"
-              name="title"
-              value={newProject.title}
-              onChange={handleNewProjectChange}
-              placeholder="Título"
-              required
-            />
-            <textarea
-              name="description"
-              value={newProject.description}
-              onChange={handleNewProjectChange}
-              placeholder="Descrição"
-              required
-            />
-            <input
-              type="text"
-              name="skills_required"
-              value={newProject.skills_required}
-              onChange={handleNewProjectChange}
-              placeholder="Habilidades requeridas (ex.: Python, React)"
-              required
-            />
-            <input
-              type="number"
-              name="budget"
-              value={newProject.budget}
-              onChange={handleNewProjectChange}
-              placeholder="Orçamento (R$)"
-              required
-            />
-            <input
-              type="date"
-              name="deadline"
-              value={newProject.deadline}
-              onChange={handleNewProjectChange}
-              required
-            />
-            <Button label="Criar Projeto" type="submit" />
-          </form>
-        )}
-        <div className="projects-list">
-          {projects.map((project) => (
-            <div key={project.id} className="project-card">
-              <h3>{project.title}</h3>
-              <p><strong>Descrição:</strong> {project.description}</p>
-              <p><strong>Habilidades:</strong> {project.skills_required}</p>
-              <p><strong>Orçamento:</strong> R${project.budget}</p>
-              <p><strong>Prazo:</strong> {new Date(project.deadline).toLocaleDateString()}</p>
-              <p><strong>Status:</strong> {project.status}</p>
-              <Button
-                label="Ver Propostas"
-                onClick={() => setSelectedProjectId(project.id)}
-              />
-            </div>
-          ))}
+      </ErrorBoundary>
+
+      <section className={styles.projectsSection}>
+        <div className={styles.projectsHeader}>
+          <h2 className={styles.sectionTitle}>Meus Projetos</h2>
+          <Button
+            label={showProjectForm ? "Cancelar" : "Criar Novo Projeto"}
+            onClick={() => setShowProjectForm(!showProjectForm)}
+            primary
+          />
         </div>
+        {showProjectForm && (
+          <ErrorBoundary componentName="ProjectForm" setError={setError}>
+            <ProjectForm
+              onSubmit={handleCreateProject}
+              setError={setError}
+              setSuccess={setSuccess}
+            />
+          </ErrorBoundary>
+        )}
+        <ErrorBoundary componentName="ProjectsList" setError={setError}>
+          <ProjectsList
+            projects={projects}
+            setSelectedProjectId={setSelectedProjectId}
+            onUpdateProjectStatus={handleUpdateProjectStatus}
+            setError={setError}
+            setSuccess={setSuccess}
+          />
+        </ErrorBoundary>
       </section>
 
-      {/* Propostas */}
       {selectedProjectId && (
-        <section className="proposals-section">
-          <h2>Propostas para o Projeto #{selectedProjectId}</h2>
-          <Button label="Fechar" onClick={() => setSelectedProjectId(null)} primary={false} />
-          <div className="proposals-list">
-            {proposals.length === 0 ? (
-              <p>Nenhuma proposta recebida.</p>
-            ) : (
-              proposals.map((proposal) => (
-                <div key={proposal.id} className="proposal-card">
-                  <p><strong>Freelancer ID:</strong> {proposal.freelancer_id}</p>
-                  <p><strong>Valor:</strong> R${proposal.bid_amount}</p>
-                  <p><strong>Prazo Estimado:</strong> {proposal.estimated_days} dias</p>
-                  <p><strong>Mensagem:</strong> {proposal.message}</p>
-                  <p><strong>Status:</strong> {proposal.status}</p>
-                  {proposal.status === "pending" && (
-                    <div className="proposal-actions">
-                      <Button
-                        label="Aceitar"
-                        onClick={() => handleProposalAction(proposal.id, "accepted")}
-                      />
-                      <Button
-                        label="Rejeitar"
-                        onClick={() => handleProposalAction(proposal.id, "rejected")}
-                        primary={false}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
+        <section className={styles.projectDetailsSection}>
+          <ErrorBoundary componentName="ProposalsList" setError={setError}>
+            <ProposalsList
+              projectId={selectedProjectId}
+              proposals={proposals}
+              onProposalAction={handleProposalAction}
+              setError={setError}
+              setSuccess={setSuccess}
+              onClose={() => setSelectedProjectId(null)}
+            />
+          </ErrorBoundary>
+          <ErrorBoundary componentName="ReviewForm" setError={setError}>
+            <ReviewForm
+              projectId={selectedProjectId}
+              projects={projects}
+              setError={setError}
+              setSuccess={setSuccess}
+            />
+          </ErrorBoundary>
+          <ErrorBoundary
+            componentName="RecommendationsList"
+            setError={setError}
+          >
+            <RecommendationsList
+              projectId={selectedProjectId}
+              setError={setError}
+              setSuccess={setSuccess}
+            />
+          </ErrorBoundary>
+          <ErrorBoundary componentName="Chat" setError={setError}>
+            <Chat
+              projectId={selectedProjectId}
+              projects={projects}
+              setError={setError}
+              setSuccess={setSuccess}
+            />
+          </ErrorBoundary>
         </section>
       )}
     </div>

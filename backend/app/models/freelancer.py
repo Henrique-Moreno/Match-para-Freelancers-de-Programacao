@@ -9,7 +9,7 @@ class Freelancer(db.Model):
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
-    skills = db.Column(db.Text)  
+    skills = db.Column(db.Text, nullable=True)  # Mantido para compatibilidade, pode ser removido após migração
     portfolio_url = db.Column(db.String(200))  
     phone = db.Column(db.String(15))  
     role = db.Column(db.String(20), default='freelancer', nullable=False)  
@@ -29,7 +29,8 @@ class Freelancer(db.Model):
             'id': self.id,
             'name': self.name,
             'email': self.email,
-            'skills': self.skills,
+            'skills': self.skills,  # Mantido para compatibilidade
+            'skill_set': [skill.to_dict() for skill in self.skill_set],  # Habilidades normalizadas
             'portfolio_url': self.portfolio_url,
             'phone': self.phone,
             'role': self.role,

@@ -33,3 +33,8 @@ def delete(proposal_id):
 def get_freelancer_proposals():
     """Rota para listar todas as propostas do freelancer autenticado."""
     return ProposalController.get_freelancer_proposals()
+
+@proposal_bp.route('/<int:proposal_id>/complete', methods=['PATCH'])
+def complete(proposal_id):
+    """Rota para marcar uma proposta como concluída pelo freelancer."""
+    return ProposalController.complete(proposal_id)

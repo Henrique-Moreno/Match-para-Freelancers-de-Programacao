@@ -2,6 +2,7 @@ from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.models.project import Project
 from app.models.client import Client
+from app.models.proposal import Proposal
 from app import db
 from datetime import datetime
 
@@ -71,8 +72,8 @@ class ProjectController:
 
         if role == 'client' and project.client_id != int(user_id):
             return jsonify({"error": "Acesso não autorizado. Este projeto não pertence ao cliente."}), 403
-        elif role == 'freelancer' and project.status != 'open':
-            return jsonify({"error": "Acesso não autorizado. Apenas projetos abertos são visíveis para freelancers."}), 403
+        elif role == 'freelancer' and project.status != 'open' and project.freelancer_id != int(user_id):
+            return jsonify({"error": "Acesso não autorizado. Apenas projetos abertos ou associados ao freelancer são visíveis."}), 403
         elif role not in ['client', 'freelancer']:
             return jsonify({"error": "Acesso não autorizado."}), 403
 
@@ -130,6 +131,39 @@ class ProjectController:
             db.session.delete(project)
             db.session.commit()
             return jsonify({"message": "Projeto deletado com sucesso."}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
+    @staticmethod
+    @jwt_required()
+    def complete(project_id):
+        """Marca um projeto como concluído."""
+        client_id = get_jwt_identity()
+        claims = get_jwt()
+        if claims['role'] != 'client':
+            return jsonify({"error": "Acesso não autorizado. Apenas clientes podem marcar projetos como concluídos."}), 403
+
+        project = Project.query.get(project_id)
+        if not project:
+            return jsonify({"error": "Projeto não encontrado."}), 404
+        if project.client_id != int(client_id):
+            return jsonify({"error": "Acesso não autorizado. Este projeto não pertence ao cliente."}), 403
+        if project.status != 'in_progress':
+            return jsonify({"error": "Apenas projetos em andamento podem ser marcados como concluídos."}), 400
+        if not project.freelancer_id:
+            return jsonify({"error": "O projeto deve ter um freelancer associado para ser concluído."}), 400
+
+        # Verifica se existe uma proposta aceita ou concluída pelo freelancer
+        proposal = Proposal.query.filter_by(project_id=project_id, freelancer_id=project.freelancer_id).first()
+        if not proposal or proposal.status not in ['accepted', 'completed_by_freelancer']:
+            return jsonify({"error": "Nenhuma proposta aceita ou concluída pelo freelancer encontrada para este projeto."}), 400
+
+        project.status = 'completed'
+
+        try:
+            db.session.commit()
+            return jsonify({"message": "Projeto marcado como concluído com sucesso.", "project": project.to_dict()}), 200
         except Exception as e:
             db.session.rollback()
             return jsonify({"error": str(e)}), 500

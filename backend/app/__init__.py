@@ -36,6 +36,9 @@ def create_app():
     from app.models.project import Project
     from app.models.proposal import Proposal
     from app.models.admin import Admin
+    from app.models.message import Message
+    from app.models.review import Review
+    from app.models.skill import Skill, freelancer_skills, project_skills
     
     # Cria as tabelas do banco no contexto da aplicação
     with app.app_context():

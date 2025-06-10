@@ -1,0 +1,51 @@
+.section {
+  background-color: #ffffff;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 1.25rem;
+  color: #1e3a8a;
+}
+
+.noProposals {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.proposal {
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.proposal p {
+  margin: 8px 0;
+  color: #374151;
+}
+
+.proposal p strong {
+  color: #1e3a8a;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}

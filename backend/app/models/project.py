@@ -10,12 +10,14 @@ class Project(db.Model):
     skills_required = db.Column(db.Text)  
     budget = db.Column(db.Float)  
     deadline = db.Column(db.DateTime)  
-    status = db.Column(db.String(20), default='open', nullable=False)   # Status do projeto (ex: 'open', 'in progress', 'completed')
-    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    status = db.Column(db.String(20), default='open', nullable=False)  # Status do projeto (ex: 'open', 'in progress', 'completed')
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id', ondelete='CASCADE'), nullable=False)
+    freelancer_id = db.Column(db.Integer, db.ForeignKey('freelancer.id', ondelete='SET NULL'), nullable=True)  # Freelancer contratado
     created_at = db.Column(db.DateTime, default=datetime.today, nullable=False)  
 
-    # Relacionamento com a model Client
-    client = db.relationship('Client', backref=db.backref('projects', lazy=True))
+    # Relacionamentos
+    client = db.relationship('Client', backref=db.backref('projects', lazy=True, cascade='all, delete'))
+    freelancer = db.relationship('Freelancer', backref=db.backref('projects', lazy=True))
 
     def to_dict(self):
         """Converte o modelo para um dicionário."""
@@ -28,6 +30,7 @@ class Project(db.Model):
             'deadline': self.deadline.isoformat() if self.deadline else None,
             'status': self.status,
             'client_id': self.client_id,
+            'freelancer_id': self.freelancer_id,
             'created_at': self.created_at.isoformat()
         }
 

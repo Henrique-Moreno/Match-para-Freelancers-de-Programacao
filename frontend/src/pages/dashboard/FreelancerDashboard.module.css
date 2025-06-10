@@ -1,0 +1,63 @@
+.container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #f9fafb;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 2rem;
+  color: #1e3a8a;
+}
+
+.loading {
+  color: #6b7280;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.errorMessage {
+  color: #dc2626;
+  background-color: #fee2e2;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.successMessage {
+  color: #15803d;
+  background-color: #dcfce7;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.projectsSection,
+.completedProjectsSection,
+.proposalsSection,
+.projectDetailsSection {
+  margin-top: 24px;
+  padding: 20px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.projectsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  color: #1e3a8a;
+}

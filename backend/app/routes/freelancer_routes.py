@@ -34,7 +34,12 @@ def get_me():
     """Rota para obter os dados do freelancer autenticado."""
     return FreelancerController.get_me()
 
-@freelancer_bp.route('/update', methods=['PUT'])
-def update():
-    """Rota para atualizar os dados do freelancer autenticado."""
-    return FreelancerController.update()
+@freelancer_bp.route('/account', methods=['DELETE'])
+def delete_account():
+    """Rota para deletar a conta do freelancer autenticado."""
+    return FreelancerController.delete_account()
+
+@freelancer_bp.route('/projects/completed', methods=['GET'])
+def get_completed_projects():
+    """Rota para listar os projetos finalizados do freelancer autenticado."""
+    return FreelancerController.get_completed_projects()

@@ -28,3 +28,13 @@ def get_profile():
 def update_profile():
     """Rota para atualizar o perfil do cliente autenticado."""
     return ClientController.update_profile()
+
+@client_bp.route('/account', methods=['DELETE'])
+def delete_account():
+    """Rota para deletar a conta do cliente autenticado."""
+    return ClientController.delete_account()
+
+@client_bp.route('/review', methods=['POST'])
+def create_review():
+    """Rota para criar uma avaliação para um freelancer."""
+    return ClientController.create_review()

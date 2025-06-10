@@ -18,9 +18,9 @@ class ProposalController:
             return jsonify({"error": "Acesso não autorizado. Apenas freelancers podem enviar propostas."}), 403
 
         data = request.get_json()
-        required_fields = ['project_id', 'bid_amount']
+        required_fields = ['project_id', 'bid_amount', 'estimated_days']
         if not data or not all(field in data for field in required_fields):
-            return jsonify({"error": "ID do projeto e valor da proposta são obrigatórios."}), 400
+            return jsonify({"error": "ID do projeto, valor da proposta e prazo estimado são obrigatórios."}), 400
 
         project = Project.query.get(data['project_id'])
         if not project:
@@ -28,11 +28,19 @@ class ProposalController:
         if project.status != 'open':
             return jsonify({"error": "Não é possível enviar propostas para projetos que não estão abertos."}), 400
 
+        # Valida que bid_amount é positivo
+        if not isinstance(data['bid_amount'], (int, float)) or data['bid_amount'] <= 0:
+            return jsonify({"error": "O valor da proposta deve ser um número positivo."}), 400
+
+        # Valida que estimated_days é um inteiro positivo
+        if not isinstance(data['estimated_days'], int) or data['estimated_days'] <= 0:
+            return jsonify({"error": "O prazo estimado deve ser um número inteiro positivo."}), 400
+
         new_proposal = Proposal(
             project_id=data['project_id'],
             freelancer_id=int(freelancer_id),
             bid_amount=data['bid_amount'],
-            estimated_days=data.get('estimated_days'),
+            estimated_days=data['estimated_days'],
             message=data.get('message'),
             status='pending'
         )
@@ -108,7 +116,7 @@ class ProposalController:
         if not data or 'status' not in data:
             return jsonify({"error": "Status é obrigatório para atualização."}), 400
 
-        valid_statuses = ['pending', 'accepted', 'rejected']
+        valid_statuses = ['pending', 'accepted', 'rejected', 'completed_by_freelancer']
         if data['status'] not in valid_statuses:
             return jsonify({"error": f"Status inválido. Use: {', '.join(valid_statuses)}."}), 400
 
@@ -116,11 +124,10 @@ class ProposalController:
             existing_accepted = Proposal.query.filter_by(project_id=proposal.project_id, status='accepted').first()
             if existing_accepted and existing_accepted.id != proposal.id:
                 return jsonify({"error": "Já existe uma proposta aceita para este projeto."}), 400
+            project.freelancer_id = proposal.freelancer_id  # Associa o freelancer ao projeto
+            project.status = 'in_progress'
 
         proposal.status = data['status']
-
-        if data['status'] == 'accepted':
-            project.status = 'in_progress'
 
         try:
             db.session.commit()
@@ -170,3 +177,29 @@ class ProposalController:
 
         proposals = Proposal.query.filter_by(freelancer_id=int(freelancer_id)).all()
         return jsonify([proposal.to_dict() for proposal in proposals]), 200
+
+    @staticmethod
+    @jwt_required()
+    def complete(proposal_id):
+        """Permite que o freelancer marque uma proposta como concluída."""
+        freelancer_id = get_jwt_identity()
+        claims = get_jwt()
+        if claims['role'] != 'freelancer':
+            return jsonify({"error": "Acesso não autorizado. Apenas freelancers podem marcar propostas como concluídas."}), 403
+
+        proposal = Proposal.query.get(proposal_id)
+        if not proposal:
+            return jsonify({"error": "Proposta não encontrada."}), 404
+        if proposal.freelancer_id != int(freelancer_id):
+            return jsonify({"error": "Acesso não autorizado. Esta proposta não pertence ao freelancer."}), 403
+        if proposal.status != 'accepted':
+            return jsonify({"error": "Apenas propostas aceitas podem ser marcadas como concluídas."}), 400
+
+        proposal.status = 'completed_by_freelancer'
+
+        try:
+            db.session.commit()
+            return jsonify({"message": "Proposta marcada como concluída pelo freelancer.", "proposal": proposal.to_dict()}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
